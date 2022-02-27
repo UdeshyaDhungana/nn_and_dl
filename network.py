@@ -1,4 +1,3 @@
-from audioop import bias
 import numpy as np
 import random
 
@@ -24,19 +23,21 @@ class Network:
         eta: learning rate
         training_data: 
         test_data: True if you're testing data"""
-        if test_data:
-            n_test = len(test_data)
-        n = len(training_data)
+        train = list(training_data)
+        test = list(test_data)
+        if test:
+            n_test = len(test)
+        n = len(train)
         for j in range(epochs):
-            random.shuffle(training_data)
+            random.shuffle(train)
             mini_batches = [
-                training_data[k:k+mini_batch_size]
+                train[k:k+mini_batch_size]
                 for k in range(0, n, mini_batch_size)
             ]
             for mini_batch in mini_batches:
                 self.update_mini_batch(mini_batch, eta)
-            if test_data:
-                print("Epoch {0}: {1} / {2}".format(j, self.evaluate(test_data), n_test))
+            if test:
+                print("Epoch {0}: {1} / {2}".format(j, self.evaluate(test), n_test))
             else:
                 print("Epoch {0} complete".format(j))
 
@@ -46,17 +47,18 @@ class Network:
         """
         nabla_b = [np.zeros(b.shape) for b in self.biases]
         nabla_w = [np.zeros(w.shape) for w in self.weights]
+        m = float(len(batch))
 
         for x, y in batch:
             del_nabla_w, del_nabla_b = self.backPropagate(x, y)
-            nabla_b = [nabla_b + del_nabla_b for nb,
+            nabla_b = [nb + dnb for nb,
                        dnb in zip(nabla_b, del_nabla_b)]
-            nabla_w = [nabla_w + del_nabla_w for nw,
+            nabla_w = [nw + dnw for nw,
                        dnw in zip(nabla_w, del_nabla_w)]
 
         # Remember, you're updating np arrays inside a list so use list comprehension
-        self.weights = [w - (eta / batch.size) * nw for w, nw in zip(self.weights, nabla_w)]
-        self.biases = [b - (eta / batch.size) * nb for b, nb in zip(self.biases, nabla_b)]
+        self.weights = [w - (eta / m) * nw for w, nw in zip(self.weights, nabla_w)]
+        self.biases = [b - (eta / m) * nb for b, nb in zip(self.biases, nabla_b)]
 
     def backPropagate(self, x, y):
         """Returns nabla of weights and biases after backpropagation algorithm"""
@@ -66,11 +68,11 @@ class Network:
         # Feedforward (we didn't use feedforward function because it doesn't store intermediate results)
         zs = []
         activations = [x]
-        input_values = x
+        activation = x
         for weights, biases in zip(self.weights, self.biases):
-            z = weights @  + biases
-            input_values = sigmoid(z)
-            activations.append(input_values)
+            z = weights @ activation  + biases
+            activation = sigmoid(z)
+            activations.append(activation)
             zs.append(z)
 
         # Propagate backwards

@@ -1,3 +1,4 @@
+from audioop import bias
 import numpy as np
 import random
 
@@ -57,8 +58,33 @@ class Network:
         self.weights = [w - (eta / batch.size) * nw for w, nw in zip(self.weights, nabla_w)]
         self.biases = [b - (eta / batch.size) * nb for b, nb in zip(self.biases, nabla_b)]
 
-    def backPropagate(x, y):
+    def backPropagate(self, x, y):
         """Returns nabla of weights and biases after backpropagation algorithm"""
+        nabla_w = [np.zeros(weights.shape) for weights in self.weights]
+        nabla_b = [np.zeros(biases.shape) for biases in self.biases]
+
+        # Feedforward (we didn't use feedforward function because it doesn't store intermediate results)
+        zs = []
+        activations = [x]
+        input_values = x
+        for weights, biases in zip(self.weights, self.biases):
+            z = weights @  + biases
+            input_values = sigmoid(z)
+            activations.append(input_values)
+            zs.append(z)
+
+        # Propagate backwards
+        del_L = (activations[-1] - y) * sigmoid_derivative(zs[-1])
+        nabla_w[-1] = del_L @ activations[-2].T
+        nabla_b[-1] = del_L
+
+        for i in range(2, self.layers):
+            del_L = (self.weights[-i + 1].T @ del_L) * sigmoid_derivative(zs[-i])
+            nabla_w[-i] = del_L @ activations[-(i+1)].T
+            nabla_b[-i] = del_L
+
+        return nabla_w, nabla_b
+
 
     def evaluate(self, test_data):
         """Evaluate the model using test_data"""
@@ -70,3 +96,8 @@ class Network:
 def sigmoid(z):
     """Calculate sigmoid of a matrix"""
     return 1 / (1.0 + np.exp(-z))
+
+def sigmoid_derivative(z):
+    """Calculate the derivative of sigmoid of a function"""
+    sz = sigmoid(z)
+    return sz * (1 - sz)

@@ -148,7 +148,7 @@ class Network(object):
             nabla_b[-l] = del_L
         return (nabla_w, nabla_b)
 
-    def accuracy(self, data, convert=True):
+    def accuracy(self, data, convert=False):
         """Convert is False if dataset is validation or test set, True otherwise.
         There is difference in representation in training and other sets"""
         if convert:

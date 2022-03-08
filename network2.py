@@ -112,14 +112,11 @@ class Network(object):
     def update_mini_batch(self, mini_batch, eta, lmbda, n):
         nabla_b = [np.zeros(b.shape) for b in self.biases]
         nabla_w = [np.zeros(w.shape) for w in self.weights]
-        m = float(len(mini_batch))
-
+        m = len(mini_batch)
         for x, y in mini_batch:
             del_nabla_w, del_nabla_b = self.backPropagate(x, y)
             nabla_b = [nb + dnb for nb, dnb in zip(nabla_b, del_nabla_b)]
             nabla_w = [nw + dnw for nw, dnw in zip(nabla_w, del_nabla_w)]
-
-        # Update the params
         self.weights = [(1-eta*(lmbda/n))*w-(eta/m)*nw
                         for w, nw in zip(self.weights, nabla_w)]
         self.biases = [b - (eta/m) * nb

@@ -54,16 +54,16 @@ class Network(object):
     def default_weight_initializer(self):
         self.biases = [np.random.randn(y, 1) for y in self.sizes[1:]]
         self.weights = [np.random.randn(y, x)/np.sqrt(x)
-                        for y, x in zip(self.sizes[1:], self.sizes[:-1])]
+                        for x, y in zip(self.sizes[:-1], self.sizes[1:])]
 
     def large_weight_initializer(self):
         self.biases = [np.random.randn(y, 1) for y in self.sizes[1:]]
         self.weights = [np.random.randn(y, x)
-                        for y, x in zip(self.sizes[1:], self.sizes[:-1])]
+                        for x, y in zip(self.sizes[:-1], self.sizes[1:])]
 
-    def feedForward(self, a):
-        for w, b in zip(self.weights, self.biases):
-            a = sigmoid(w @ a + b)
+    def feedforward(self, a):
+        for b, w in zip(self.biases, self.weights):
+            a = sigmoid(np.dot(w, a)+b)
         return a
 
     def SGD(self, training_data, epochs, mini_batch_size, eta,
@@ -112,88 +112,81 @@ class Network(object):
     def update_mini_batch(self, mini_batch, eta, lmbda, n):
         nabla_b = [np.zeros(b.shape) for b in self.biases]
         nabla_w = [np.zeros(w.shape) for w in self.weights]
-        m = float(len(mini_batch))
-
         for x, y in mini_batch:
-            del_nabla_w, del_nabla_b = self.backPropagate(x, y)
-            nabla_b = [nb + dnb for nb, dnb in zip(nabla_b, del_nabla_b)]
-            nabla_w = [nw + dnw for nw, dnw in zip(nabla_w, del_nabla_w)]
-
-        # Update the params
-        self.weights = [(1-eta*(lmbda/n))*w-(eta/m)*nw
+            delta_nabla_b, delta_nabla_w = self.backprop(x, y)
+            nabla_b = [nb+dnb for nb, dnb in zip(nabla_b, delta_nabla_b)]
+            nabla_w = [nw+dnw for nw, dnw in zip(nabla_w, delta_nabla_w)]
+        self.weights = [(1-eta*(lmbda/n))*w-(eta/len(mini_batch))*nw
                         for w, nw in zip(self.weights, nabla_w)]
-        self.biases = [b - (eta/m) * nb
+        self.biases = [b-(eta/len(mini_batch))*nb
                        for b, nb in zip(self.biases, nabla_b)]
 
-    def backPropagate(self, x, y):
-        zs = []
-        activations = [x]
-        activation = x
-        nabla_w = [np.zeros(w.shape) for w in self.weights]
+    def backprop(self, x, y):
         nabla_b = [np.zeros(b.shape) for b in self.biases]
-
-        # Forward pass
-        for w, b in zip(self.weights, self.biases):
-            z = (w @ activation) + b
+        nabla_w = [np.zeros(w.shape) for w in self.weights]
+        # feedforward
+        activation = x
+        activations = [x]  # list to store all the activations, layer by layer
+        zs = []  # list to store all the z vectors, layer by layer
+        for b, w in zip(self.biases, self.weights):
+            z = np.dot(w, activation)+b
             zs.append(z)
             activation = sigmoid(z)
             activations.append(activation)
-
-        # Back pass
-        del_L = (self.cost).delta(z, activation, y)
-        nabla_w[-1] = del_L @ (activations[-2].T)
-        nabla_b[-1] = del_L
-
+        # backward pass
+        delta = (self.cost).delta(zs[-1], activations[-1], y)
+        nabla_b[-1] = delta
+        nabla_w[-1] = np.dot(delta, activations[-2].transpose())
         for l in range(2, self.num_layers):
             z = zs[-l]
-            del_L = (self.weights[-l+1].T @ del_L) * sigmoid_prime(z)
-            nabla_w[-l] = del_L @ activations[-l-1].T
-            nabla_b[-l] = del_L
-        return (nabla_w, nabla_b)
+            sp = sigmoid_prime(z)
+            delta = np.dot(self.weights[-l+1].transpose(), delta) * sp
+            nabla_b[-l] = delta
+            nabla_w[-l] = np.dot(delta, activations[-l-1].transpose())
+        return (nabla_b, nabla_w)
 
-    def accuracy(self, data, convert=True):
-        """Convert is False if dataset is validation or test set, True otherwise.
-        There is difference in representation in training and other sets"""
+    def accuracy(self, data, convert=False):
         if convert:
-            results = [(np.argmax(self.feedForward(x)), np.argmax(y))
+            results = [(np.argmax(self.feedforward(x)), np.argmax(y))
                        for (x, y) in data]
         else:
-            results = [(np.argmax(self.feedForward(x)), y)
+            results = [(np.argmax(self.feedforward(x)), y)
                        for (x, y) in data]
         return sum(int(x == y) for (x, y) in results)
 
     def total_cost(self, data, lmbda, convert=False):
         cost = 0.0
         for x, y in data:
-            a = self.feedForward(x)
+            a = self.feedforward(x)
             if convert:
                 y = vectorized_result(y)
-                cost += self.cost.fn(a, y) / len(data)
-        cost += 0.5 * (lmbda / len(data)) * sum(
+            cost += self.cost.fn(a, y)/len(data)
+        cost += 0.5*(lmbda/len(data))*sum(
             np.linalg.norm(w)**2 for w in self.weights)
         return cost
 
     def save(self, filename):
-        """Save neural network to `filename`"""
-        data = {
-            'sizes': self.sizes,
-            'weights': [w.tolist() for w in self.weights],
-            'biases': [b.tolist() for b in self.biases],
-            'cost': str(self.cost.__name__)
-        }
-        f = open(filename, 'w')
+        """Save the neural network to the file ``filename``."""
+        data = {"sizes": self.sizes,
+                "weights": [w.tolist() for w in self.weights],
+                "biases": [b.tolist() for b in self.biases],
+                "cost": str(self.cost.__name__)}
+        f = open(filename, "w")
         json.dump(data, f)
         f.close()
 
+# Loading a Network
 
-# Load
+
 def load(filename):
-    """Load neural network from file `filename`"""
-    f = open(filename, 'r')
+    f = open(filename, "r")
     data = json.load(f)
     f.close()
-    cost = getattr(sys.modules[__name__], data['cost'])
-    net = Network(data['sizes'], cost=cost)
-    net.weights = [np.array(w) for w in data['weights']]
-    net.biases = [np.array(b) for b in data['biases']]
+    cost = getattr(sys.modules[__name__], data["cost"])
+    net = Network(data["sizes"], cost=cost)
+    net.weights = [np.array(w) for w in data["weights"]]
+    net.biases = [np.array(b) for b in data["biases"]]
     return net
+
+# Miscellaneous functions
+

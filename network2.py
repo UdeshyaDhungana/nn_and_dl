@@ -54,12 +54,12 @@ class Network(object):
     def default_weight_initializer(self):
         self.biases = [np.random.randn(y, 1) for y in self.sizes[1:]]
         self.weights = [np.random.randn(y, x)/np.sqrt(x)
-                        for y, x in zip(self.sizes[1:], self.sizes[:-1])]
+                        for x, y in zip(self.sizes[:-1], self.sizes[1:])]
 
     def large_weight_initializer(self):
         self.biases = [np.random.randn(y, 1) for y in self.sizes[1:]]
         self.weights = [np.random.randn(y, x)
-                        for y, x in zip(self.sizes[1:], self.sizes[:-1])]
+                        for x, y in zip(self.sizes[:-1], self.sizes[1:])]
 
     def feedForward(self, a):
         for w, b in zip(self.weights, self.biases):

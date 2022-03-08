@@ -16,7 +16,7 @@ if __name__ == "__main__":
     # network.SGD(training_data=training_data, epochs=15, mini_batch_size=50, eta=3.0, test_data=test_data)
 
     # The one with cross entropy cost and l2 regularization
-    net = network3.Network(sizes, cost=network2.CrossEntropyCost)
+    net = network2.Network(sizes, cost=network2.CrossEntropyCost)
     evaluation_cost, evaluation_accuracy, training_cost, training_accuracy = net.SGD(
         training_data,
         10,
@@ -35,4 +35,3 @@ if __name__ == "__main__":
     plt.title('Neural Network Metrics')
     plt.legend()
     plt.show()
-    net.save('network2.txt')

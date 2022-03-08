@@ -61,8 +61,8 @@ class Network(object):
         self.weights = [np.random.randn(y, x)
                         for x, y in zip(self.sizes[:-1], self.sizes[1:])]
 
-    def feedforward(self, a):
-        for b, w in zip(self.biases, self.weights):
+    def feedForward(self, a):
+        for w, b in zip(self.weights, self.biases):
             a = sigmoid(np.dot(w, a)+b)
         return a
 
@@ -114,15 +114,15 @@ class Network(object):
         nabla_w = [np.zeros(w.shape) for w in self.weights]
         m = len(mini_batch)
         for x, y in mini_batch:
-            del_nabla_b, del_nabla_w = self.backprop(x, y)
+            del_nabla_w, del_nabla_b = self.backPropagate(x, y)
             nabla_b = [nb + dnb for nb, dnb in zip(nabla_b, del_nabla_b)]
             nabla_w = [nw + dnw for nw, dnw in zip(nabla_w, del_nabla_w)]
         self.weights = [(1-eta*(lmbda/n))*w-(eta/m)*nw
                         for w, nw in zip(self.weights, nabla_w)]
-        self.biases = [b-(eta/m)*nb
+        self.biases = [b - (eta/m) * nb
                        for b, nb in zip(self.biases, nabla_b)]
 
-    def backprop(self, x, y):
+    def backPropagate(self, x, y):
         zs = []
         activations = [x]
         activation = x
@@ -130,37 +130,37 @@ class Network(object):
         nabla_b = [np.zeros(b.shape) for b in self.biases]
 
         # Forward pass
-        for b, w in zip(self.biases, self.weights):
+        for w, b in zip(self.weights, self.biases):
             z = np.dot(w, activation)+b
             zs.append(z)
             activation = sigmoid(z)
             activations.append(activation)
 
         # Back pass
-        delta = (self.cost).delta(zs[-1], activations[-1], y)
-        nabla_w[-1] = np.dot(delta, activations[-2].transpose())
-        nabla_b[-1] = delta
+        del_L = (self.cost).del_L(zs[-1], activations[-1], y)
+        nabla_w[-1] = np.dot(del_L, activations[-2].transpose())
+        nabla_b[-1] = del_L
 
         for l in range(2, self.num_layers):
             z = zs[-l]
-            delta = np.dot(self.weights[-l+1].transpose(), delta) * sigmoid_prime(z)
-            nabla_w[-l] = np.dot(delta, activations[-l-1].transpose())
-            nabla_b[-l] = delta
-        return (nabla_b, nabla_w)
+            del_L = np.dot(self.weights[-l+1].transpose(), del_L) * sigmoid_prime(z)
+            nabla_w[-l] = np.dot(del_L, activations[-l-1].transpose())
+            nabla_b[-l] = del_L
+        return (nabla_w, nabla_b)
 
     def accuracy(self, data, convert=False):
         if convert:
-            results = [(np.argmax(self.feedforward(x)), np.argmax(y))
+            results = [(np.argmax(self.feedForward(x)), np.argmax(y))
                        for (x, y) in data]
         else:
-            results = [(np.argmax(self.feedforward(x)), y)
+            results = [(np.argmax(self.feedForward(x)), y)
                        for (x, y) in data]
         return sum(int(x == y) for (x, y) in results)
 
     def total_cost(self, data, lmbda, convert=False):
         cost = 0.0
         for x, y in data:
-            a = self.feedforward(x)
+            a = self.feedForward(x)
             if convert:
                 y = vectorized_result(y)
             cost += self.cost.fn(a, y) / len(data)

@@ -123,27 +123,29 @@ class Network(object):
                        for b, nb in zip(self.biases, nabla_b)]
 
     def backprop(self, x, y):
-        nabla_b = [np.zeros(b.shape) for b in self.biases]
-        nabla_w = [np.zeros(w.shape) for w in self.weights]
-        # feedforward
+        zs = []
+        activations = [x]
         activation = x
-        activations = [x]  # list to store all the activations, layer by layer
-        zs = []  # list to store all the z vectors, layer by layer
+        nabla_w = [np.zeros(w.shape) for w in self.weights]
+        nabla_b = [np.zeros(b.shape) for b in self.biases]
+
+        # Forward pass
         for b, w in zip(self.biases, self.weights):
             z = np.dot(w, activation)+b
             zs.append(z)
             activation = sigmoid(z)
             activations.append(activation)
-        # backward pass
+
+        # Back pass
         delta = (self.cost).delta(zs[-1], activations[-1], y)
-        nabla_b[-1] = delta
         nabla_w[-1] = np.dot(delta, activations[-2].transpose())
+        nabla_b[-1] = delta
+
         for l in range(2, self.num_layers):
             z = zs[-l]
-            sp = sigmoid_prime(z)
-            delta = np.dot(self.weights[-l+1].transpose(), delta) * sp
-            nabla_b[-l] = delta
+            delta = np.dot(self.weights[-l+1].transpose(), delta) * sigmoid_prime(z)
             nabla_w[-l] = np.dot(delta, activations[-l-1].transpose())
+            nabla_b[-l] = delta
         return (nabla_b, nabla_w)
 
     def accuracy(self, data, convert=False):
@@ -161,8 +163,8 @@ class Network(object):
             a = self.feedforward(x)
             if convert:
                 y = vectorized_result(y)
-            cost += self.cost.fn(a, y)/len(data)
-        cost += 0.5*(lmbda/len(data))*sum(
+            cost += self.cost.fn(a, y) / len(data)
+        cost += 0.5 * (lmbda / len(data)) * sum(
             np.linalg.norm(w)**2 for w in self.weights)
         return cost
 

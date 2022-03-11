@@ -15,18 +15,20 @@ def sigmoid_prime(z):
 
 
 def vectorized_result(j):
+    """Returns a 10 dimensional vector with zeros, but 1 in jth position"""
     result = np.zeros((10, 1))
     result[j] = 1.0
     return result
 
 
 class QuadraticCost(object):
-
+    # calculate error given classification output and actual output
     @staticmethod
     def fn(a, y):
         """Return error when a is evaluation and y is expected output"""
         return 0.5 * np.linalg.norm(a - y)**2
 
+    # error in final layer given this is the error function
     @staticmethod
     def delta(z, a, y):
         return (a - y) * sigmoid_prime(z)
@@ -48,6 +50,7 @@ class Network(object):
     def __init__(self, sizes, cost=CrossEntropyCost):
         self.num_layers = len(sizes)
         self.sizes = sizes
+        # initialize weights such that mean 0 and SD = 1/sqrt(n)
         self.default_weight_initializer()
         self.cost = cost
 
@@ -57,6 +60,7 @@ class Network(object):
                         for x, y in zip(self.sizes[:-1], self.sizes[1:])]
 
     def large_weight_initializer(self):
+        # same as network.py
         self.biases = [np.random.randn(y, 1) for y in self.sizes[1:]]
         self.weights = [np.random.randn(y, x)
                         for x, y in zip(self.sizes[:-1], self.sizes[1:])]
@@ -79,6 +83,7 @@ class Network(object):
         n = len(training_data)
         if (evaluation_data):
             n_data = len(evaluation_data)
+        # keep track of these metrics
         evaluation_cost, evaluation_accuracy = [], []
         training_cost, training_accuracy = [], []
         for j in range(epochs):
@@ -117,6 +122,7 @@ class Network(object):
             del_nabla_w, del_nabla_b = self.backPropagate(x, y)
             nabla_b = [nb + dnb for nb, dnb in zip(nabla_b, del_nabla_b)]
             nabla_w = [nw + dnw for nw, dnw in zip(nabla_w, del_nabla_w)]
+        # add regularization term, it scales w and adjusts w using delta
         self.weights = [(1-eta*(lmbda/n))*w-(eta/m)*nw
                         for w, nw in zip(self.weights, nabla_w)]
         self.biases = [b - (eta/m) * nb
@@ -137,6 +143,7 @@ class Network(object):
             activations.append(activation)
 
         # Back pass
+        # calculate erorr in final layer according to supplied cost function
         del_L = (self.cost).delta(z, activation, y)
         nabla_w[-1] = del_L @ (activations[-2].T)
         nabla_b[-1] = del_L

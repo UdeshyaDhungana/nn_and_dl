@@ -51,6 +51,7 @@ class Network(object):
         self.sizes = sizes
         self.default_weight_initializer()
         self.cost = cost
+        # keep track of velocities of each parameter, we're going downhill
         self.velocities = [np.zeros(y,x) for y, x in zip(sizes[1:], sizes[:1])]
 
     def default_weight_initializer(self):
@@ -120,6 +121,8 @@ class Network(object):
             del_nabla_w, del_nabla_b = self.backPropagate(x, y)
             nabla_b = [nb + dnb for nb, dnb in zip(nabla_b, del_nabla_b)]
             nabla_w = [nw + dnw for nw, dnw in zip(nabla_w, del_nabla_w)]
+        # change velocities term
+        # update weights according by incorporating details about velocities as well
         self.velocities = [mu*nv - (eta/m)*nw  for nv, nw in zip(self.velocities, nabla_w)]
         self.weights = [(1-eta*(lmbda/n))*w + nv
                         for w, nv in zip(self.weights, self.velocities)]

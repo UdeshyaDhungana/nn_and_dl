@@ -1,3 +1,5 @@
+# added regularization in network.py
+
 import json
 import random
 import sys
